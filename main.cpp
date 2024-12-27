@@ -30,47 +30,49 @@ struct NewStudent {
 
 map<string, Student> studentMap;
 
-NewStudent addStudent(bool modifying = false) {
-    Student student;
+NewStudent addStudent(bool modifying = false, string originalID = "") {
+  Student student;
 
-    cout << "Enter student name: ";
-    cin >>  student.name;
+  cout << "Enter student name: ";
+  cin >> student.name;
 
+  if (modifying) {
+    student.id = originalID; // Retain the original ID during modification
+  } else {
     string id;
     cout << "Enter student ID: ";
     cin >> id;
 
     while (studentMap.find(id) != studentMap.end()) {
-    	cout << "Student ID already exists. Please enter a different one: ";
+      cout << "Student ID already exists. Please enter a different one: ";
       cin >> id;
-	  }
+    }
 
     student.id = id;
+  }
 
-    cout << "Enter student Quiz Scores: " << endl;
-    for(int i = 0; i < QUIZ_AMOUNT; i++) {
-      int score;
-      cout << "Score " << to_string(i + 1) << ": " ;
-      cin >> score;
-      student.quizScores[i] = score;
-    }
+  cout << "Enter student Quiz Scores: " << endl;
+  for (int i = 0; i < QUIZ_AMOUNT; i++) {
+    int score;
+    cout << "Score " << to_string(i + 1) << ": ";
+    cin >> score;
+    student.quizScores[i] = score;
+  }
 
-    cout << "Enter student Project Scores: " << endl;
-    for(int i = 0; i < PROJECT_AMOUNT; i++) {
-      int score;
-      cout << "Score " << to_string(i + 1) << ": " ;
-      cin >> score;
-      student.projectScores[i] = score;
-    }
+  cout << "Enter student Project Scores: " << endl;
+  for (int i = 0; i < PROJECT_AMOUNT; i++) {
+    int score;
+    cout << "Score " << to_string(i + 1) << ": ";
+    cin >> score;
+    student.projectScores[i] = score;
+  }
 
-    int finalScore;
-    cout << "Enter student Final Score: " << endl;
-    cin >> finalScore;
-    student.finalScore = finalScore;
+  int finalScore;
+  cout << "Enter student Final Score: " << endl;
+  cin >> finalScore;
+  student.finalScore = finalScore;
 
-    // Must find a way to make sure ID isn't changed during modification.
-    NewStudent newbie(id, student);
-    return newbie;
+  return NewStudent(student.id, student);
 }
 
 void modifyStudent() {
@@ -84,28 +86,38 @@ void modifyStudent() {
       return;
     }
 
-    const NewStudent changedStudent = addStudent();
+    const NewStudent changedStudent = addStudent(true, id);
 
     studentMap[id] = changedStudent.student;
 }
 
 void displayStudent(const Student& student) {
   string qScores;
-  for(const int score : student.quizScores) {
+  for(int i = 0; i < QUIZ_AMOUNT; i++) {
+    int score = student.quizScores[i];
     string stringScore = to_string(score);
-    qScores += stringScore + ", ";
+    if(i == QUIZ_AMOUNT - 1) {
+      qScores += stringScore;
+    } else {
+      qScores += stringScore + ", ";
+    };
   }
 
   string pScores;
-  for(const int score : student.projectScores) {
+  for(int i = 0; i < PROJECT_AMOUNT; i++) {
+    int score = student.projectScores[i];
     string stringScore = to_string(score);
-    pScores += stringScore + ", ";
+    if(i == PROJECT_AMOUNT - 1) {
+      pScores += stringScore;
+    } else {
+      pScores += stringScore + ", ";
+    };
   }
   cout << "Name: " << student.name << " | " << "ID: " << student.id << " | " << "Quiz Scores: " << qScores << " | " << "Project Scores: " << pScores << " | " << "Final Score: " << student.finalScore << endl;
 }
 
 void viewStudents() {
-    if(studentMap.size() == 0) {
+    if(studentMap.empty()) {
       cout << "No students to display." << endl;
       return;
     }
@@ -128,17 +140,75 @@ void deleteStudent() {
   studentMap.erase(id);
 }
 
+string getFinalGrade(Student student) {
+  int quizTotal = 0;
+  for(const int score: student.quizScores) {
+    quizTotal += score;
+  }
+  const int quizAverage = quizTotal / QUIZ_AMOUNT;
+
+  int projectTotal = 0;
+  for(const int score: student.projectScores) {
+    projectTotal += score;
+  }
+  const int projectAverage = projectTotal / PROJECT_AMOUNT;
+
+  const float quizWeight = 0.4;
+  const float projectWeight = 0.3;
+  const float finalWeight = 0.3;
+
+  const float finalScore = (quizAverage * quizWeight) + (projectAverage * projectWeight) + (student.finalScore * finalWeight);
+  const int roundScore = finalScore;
+
+  if(roundScore >= 97 && roundScore < 100) {
+    return "A+";
+  } else if(roundScore >= 93 && roundScore < 97) {
+    return "A";
+  } else if(roundScore >= 90 && roundScore < 93) {
+    return "A-";
+  } else if(roundScore >= 87 && roundScore < 90) {
+    return "B+";
+  } else if(roundScore >= 83 && roundScore < 87) {
+    return "B";
+  } else if(roundScore >= 80 && roundScore < 83) {
+    return "B-";
+  } else if(roundScore >= 77 && roundScore < 80) {
+    return "C+";
+  } else if(roundScore >= 73 && roundScore < 77) {
+    return "C";
+  } else if(roundScore >= 70 && roundScore < 73) {
+    return "C-";
+  } else if(roundScore >= 67 && roundScore < 70) {
+    return "D+";
+  } else if(roundScore >= 65 && roundScore < 67) {
+    return "D";
+  } else if(roundScore < 65) {
+    return "F";
+  }
+}
+
+void displayFinalGrades() {
+  if(studentMap.empty()) {
+    cout << "There are no students." << endl;
+    return;
+  }
+  for(const auto& student : studentMap) {
+    const string finalGrade = getFinalGrade(student.second);
+    cout << student.second.name << "'s Grade: " << finalGrade << endl;
+  }
+}
+
 void displayMenu() {
     int choice;
     while (true) {
-        cout << "Choose:\n 1. Add Student \n 2. Modify Student \n 3. View Students \n 4. Delete Student \n 5. Exit\n";
+        cout << "Choose:\n 1. Add Student \n 2. Modify Student \n 3. View Students \n 4. Delete Student \n 5. Show Final Grades \n 6. Exit\n";
         cin >> choice;
         NewStudent newStudent;
 
         switch (choice) {
             case 1:
                 system("cls");
-                newStudent = addStudent();
+                newStudent = addStudent(false);
                 studentMap.insert({newStudent.studentID, newStudent.student});
                 break;
             case 2:
@@ -151,6 +221,9 @@ void displayMenu() {
                 deleteStudent();
                 break;
             case 5:
+                displayFinalGrades();
+                break;
+            case 6:
                 cout << "Exiting...\n";
                 return;
             default:
